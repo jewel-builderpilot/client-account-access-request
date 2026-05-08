@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+{% block title %}Client Onboarding — BuilderPilot{% endblock %}
+{% block body %}
+<div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-10 px-4">
+  <div class="max-w-2xl mx-auto">
+
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-bold text-gray-900">Client Onboarding</h1>
+      <p class="text-gray-500 mt-2">Fill this out before our onboarding call so we can hit the ground running.</p>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="mb-6">
+      <div class="flex justify-between text-xs text-gray-500 mb-1">
+        <span id="step-label">Step 1 of 8</span>
+        <span id="step-pct">12%</span>
+      </div>
+      <div class="w-full bg-gray-200 rounded-full h-2">
+        <div id="progress-bar" class="bg-indigo-600 h-2 rounded-full transition-all duration-300" style="width:12.5%"></div>
+      </div>
+    </div>
+
+    <!-- Form -->
+    <form id="onboarding-form" method="POST" action="{{ url_for('client.submit_form') }}" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+      <!-- STEP 1: Business Information -->
+      <div class="step-panel" data-step="1">
+        <div class="bg-white rounded-2xl shadow-sm p-8 space-y-5">
+          <h2 class="text-xl font-semibold text-gray-900">Business Information</h2>
+          <p class="text-sm text-gray-500">Confirm your details so we have everything right.</p>
+
+          {{ field("company_name", "Company Name", required=true) }}
+          {{ field("owner_name", "Owner / Primary Contact", required=true) }}
+          {{ field("phone", "Phone", type="tel", required=true) }}
+          {{ field("best_email", "Best Email", type="email", required=true) }}
+          {{ field("lead_notif_email", "Preferred Email for Lead Notifications (if different)", type="email") }}
+          {{ field("website", "Website", type="url", required=true) }}
+          {{ field("city_state", "City / State", required=true) }}
+          {{ field("years_in_business", "Years in Business") }}
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Licensed / Bonded / Insured? <span class="text-red-500">*</span></label>
+            <select name="licensed_bonded_insured" required class="input-field">
+              <option value="">Select one</option>
+              <option value="yes_all_three">Yes — all three</option>
+              <option value="licensed_insured_only">Licensed &amp; insured only</option>
+              <option value="working_on_it">Working on it</option>
+            </select>
+          </div>
+
+          {{ field("tagline", "Tagline / Slogan") }}
+          {{ field("company_values", "Company Values / Differentiators", textarea=true) }}
+        </div>
+      </div>
+
+      <!-- STEP 2: Services & Market -->
+      <div class="step-panel hidden" data-step="2">
+        <div class="bg-white rounded-2xl shadow-sm p-8 space-y-5">
+          <h2 class="text-xl font-semibold text-gray-900">Services &amp; Market</h2>
+          <p class="text-sm text-gray-500">What you build, where you build, and who you build for.</p>
+
+          {{ field("services_offered", "Services You Offer", textarea=true, required=true) }}
+          {{ field("top_revenue_service", "Which service drives the most revenue?", required=true) }}
+          {{ field("more_leads_service", "Which service do you want MORE leads for?", required=true) }}
+          {{ field("avg_project_size", "Average Project Size / Price Range", required=true) }}
+          {{ field("service_area", "Service Area", required=true) }}
+          {{ field("ideal_customer", "Who is your ideal customer?", textarea=true, required=true) }}
+          {{ field("unwanted_jobs", "Any jobs you DON'T want?", textarea=true) }}
+        </div>
+      </div>
+
+      <!-- STEP 3: Branding & Assets -->
+      <div class="step-panel hidden" data-step="3">
+        <div class="bg-white rounded-2xl shadow-sm p-8 space-y-5">
+          <h2 class="text-xl font-semibold text-gray-900">Branding &amp; Assets</h2>
+          <p class="text-sm text-gray-500">We'll use these for ads, landing pages, and marketing materials.</p>
+
+          {{ field("brand_colors", "Brand Colors (hex codes if you have them)") }}
+          <p class="text-xs text-gray-400 -mt-3">If you're not sure, we'll pull them from your website.</p>
+          {{ field("brand_fonts", "Brand Fonts") }}
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Do you have logo files you can share?</label>
+            <select name="logo_files" class="input-field">
+              <option value="">Select one</option>
+              <option value="yes_png_svg">Yes — I have PNG/SVG files I can send</option>
+              <option value="maybe_dig_up">I think so — I'll need to dig them up</option>
+              <option value="no_website_only">No — just what's on my website</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Do you have professional project photos?</label>
+            <select name="project_photos" class="input-field">
+              <option value="">Select one</option>
+              <option value="yes_lots">Yes — lots of project photos ready to share</option>
+              <option value="some_on_phone">Some — I take photos but they're on my phone</option>
+              <option value="not_really">Not really — I need to start taking them</option>
+            </select>
+          </div>
+
+          {{ field("certifications", "Certifications, Awards, or Memberships") }}
+        </div>
+      </div>
+
+      <!-- STEP 4: Lead Preferences & Sales -->
+      <div class="step-panel hidden" data-step="4">
+        <div class="bg-white rounded-2xl shadow-sm p-8 space-y-5">
+          <h2 class="text-xl font-semibold text-gray-900">Lead Preferences &amp; Sales</h2>
+          <p class="text-sm text-gray-500">How you want leads to come in and how you close them.</p>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">How do you want to receive leads? <span class="text-red-500">*</span></label>
+            <div class="space-y-2">
+              {% for val, label in [("phone_calls","Phone Calls"),("form_email","Form / Email"),("text_sms","Text / SMS"),("crm_integration","CRM Integration")] %}
+              <label class="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="lead_receive_method" value="{{ val }}" class="rounded border-gray-300 text-indigo-600" />
+                {{ label }}
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+
+          {{ field("crm_name", "Do you use a CRM?") }}
+          {{ field("qualified_lead", "What makes a lead 'qualified' vs. a bad lead?", textarea=true, required=true) }}
+          {{ field("sales_process", "What does your sales process look like?", textarea=true) }}
+          {{ field("close_rate", "What's your close rate on leads? (estimate)") }}
+          {{ field("avg_project_value", "Average project value?") }}
+        </div>
+      </div>
+
+      <!-- STEP 5: Account Access -->
+      <div class="step-panel hidden" data-step="5">
+        <div class="bg-white rounded-2xl shadow-sm p-8 space-y-5">
+          <h2 class="text-xl font-semibold text-gray-900">Account Access</h2>
+          <p class="text-sm text-gray-500">
+            We'll need admin or manager access to these platforms. Let us know what you already have —
+            we'll set up anything that's missing. Don't worry if you don't have all of these.
+          </p>
+
+          {% set platforms = [
+            ("google_ads",      "Google Ads",               "For running search and display ads"),
+            ("ga4",             "Google Analytics (GA4)",   "For tracking website traffic and conversions"),
+            ("gtm",             "Google Tag Manager",       "For managing tracking codes on your site"),
+            ("gbp",             "Google Business Profile",  "For local SEO, maps, and reviews"),
+            ("gsc",             "Google Search Console",    "For SEO monitoring and indexing"),
+            ("meta",            "Facebook / Meta Business Manager", "For running Facebook & Instagram ads"),
+            ("facebook_page",   "Facebook Page",            "Your business page on Facebook"),
+          ] %}
+
+          {% for key, label, desc in platforms %}
+          <div class="border border-gray-100 rounded-xl p-4">
+            <p class="font-medium text-gray-800">{{ label }}</p>
+            <p class="text-xs text-gray-400 mb-2">{{ desc }}</p>
+            <select name="platform_{{ key }}" class="input-field text-sm">
+              <option value="not_sure">Not sure</option>
+              <option value="has_account">I have an account</option>
+              <option value="needs_created">Need you to create one</option>
+              <option value="doesnt_have">Don't have one</option>
+            </select>
+          </div>
+          {% endfor %}
+
+          {{ field("facebook_page_url", "Facebook Page URL (if you have one)", type="url") }}
+          {{ field("instagram_url", "Instagram URL (if you have one)", type="url") }}
+          {{ field("domain_host", "Domain / Website Host") }}
+          {{ field("website_platform", "Website Platform (if you know it)") }}
+        </div>
+      </div>
+
+      <!-- STEP 6: Goals & Growth -->
+      <div class="step-panel hidden" data-step="6">
+        <div class="bg-white rounded-2xl shadow-sm p-8 space-y-5">
+          <h2 class="text-xl font-semibold text-gray-900">Goals &amp; Growth</h2>
+          <p class="text-sm text-gray-500">What success looks like for you.</p>
+
+          {{ field("primary_goal", "What's the #1 thing you want from this partnership?", textarea=true, required=true) }}
+          {{ field("success_90_days", "What does success look like in 90 days?", textarea=true, required=true) }}
+          {{ field("leads_per_month", "How many leads/month do you want?", required=true) }}
+          {{ field("current_capacity", "Current capacity? (projects at once)") }}
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Are you trying to grow or stay the same size? <span class="text-red-500">*</span></label>
+            <select name="grow_or_steady" required class="input-field">
+              <option value="">Select one</option>
+              <option value="grow_scale">Grow — I want to scale up and hire</option>
+              <option value="stay_steady">Stay steady — just need consistent leads to stay full</option>
+              <option value="replace_bad_leads">Replace bad leads — I have volume but quality is poor</option>
+            </select>
+          </div>
+
+          {{ field("expansion_plans", "Plans to expand service area or add services?", textarea=true) }}
+          {{ field("main_competitors", "Who are your main local competitors?") }}
+          {{ field("differentiators", "What sets you apart from them?", textarea=true) }}
+        </div>
+      </div>
+
+      <!-- STEP 7: Budget & Timeline -->
+      <div class="step-panel hidden" data-step="7">
+        <div class="bg-white rounded-2xl shadow-sm p-8 space-y-5">
+          <h2 class="text-xl font-semibold text-gray-900">Budget &amp; Timeline</h2>
+          <p class="text-sm text-gray-500">So we can plan the right strategy for your investment.</p>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Monthly ad budget <span class="text-red-500">*</span></label>
+            <p class="text-xs text-gray-400 mb-2">This is just ad spend — separate from management fees.</p>
+            <select name="monthly_ad_budget" required class="input-field">
+              <option value="">Select one</option>
+              <option value="under_1k">Under $1,000/mo</option>
+              <option value="1k_2500">$1,000 – $2,500/mo</option>
+              <option value="2500_5k">$2,500 – $5,000/mo</option>
+              <option value="5k_10k">$5,000 – $10,000/mo</option>
+              <option value="10k_plus">$10,000+/mo</option>
+            </select>
+          </div>
+
+          {{ field("budget_split", "How do you want to split the budget?") }}
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Have you run ads before? <span class="text-red-500">*</span></label>
+            <select name="ran_ads_before" required class="input-field">
+              <option value="">Select one</option>
+              <option value="yes_worked_well">Yes — it worked well</option>
+              <option value="yes_mixed">Yes — mixed results</option>
+              <option value="yes_bad_experience">Yes — it didn't work / bad experience</option>
+              <option value="no_first_time">No — this is my first time</option>
+            </select>
+          </div>
+
+          {{ field("past_frustrations", "Any past marketing frustrations?", textarea=true) }}
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">When do you want ads live? <span class="text-red-500">*</span></label>
+            <select name="ads_live_when" required class="input-field">
+              <option value="">Select one</option>
+              <option value="asap">ASAP — ready to go now</option>
+              <option value="within_2_weeks">Within 2 weeks</option>
+              <option value="within_a_month">Within a month</option>
+              <option value="no_rush">No rush — let's get it right first</option>
+            </select>
+          </div>
+
+          {{ field("seasonal_considerations", "Any seasonal considerations or upcoming events?") }}
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Do you want to approve all ad copy before it goes live? <span class="text-red-500">*</span></label>
+            <select name="approve_ad_copy" required class="input-field">
+              <option value="">Select one</option>
+              <option value="yes_review_everything">Yes — I want to review everything first</option>
+              <option value="first_round_only">Just the first round — then I trust you</option>
+              <option value="no_trust_process">No — just run it, I trust the process</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 8: Review & Submit -->
+      <div class="step-panel hidden" data-step="8">
+        <div class="bg-white rounded-2xl shadow-sm p-8">
+          <h2 class="text-xl font-semibold text-gray-900 mb-2">Review &amp; Submit</h2>
+          <p class="text-sm text-gray-500 mb-6">Take a quick look — then we'll get started.</p>
+          <div id="review-summary" class="space-y-4 text-sm text-gray-700"></div>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <div class="flex justify-between mt-6">
+        <button type="button" id="btn-prev"
+          class="hidden px-6 py-2.5 rounded-xl border border-gray-300 text-gray-700 font-medium hover:bg-gray-100 transition">
+          ← Back
+        </button>
+        <div class="ml-auto">
+          <button type="button" id="btn-next"
+            class="px-6 py-2.5 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition">
+            Next →
+          </button>
+          <button type="submit" id="btn-submit"
+            class="hidden px-8 py-2.5 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 transition">
+            Submit →
+          </button>
+        </div>
+      </div>
+
+      <!-- Server-side error display -->
+      <div id="form-errors" class="hidden mt-4 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700"></div>
+    </form>
+  </div>
+</div>
+
+<style>
+  .input-field {
+    @apply w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent;
+  }
+  textarea.input-field { @apply resize-y; }
+</style>
+
+<script src="{{ url_for('static', filename='js/form-stepper.js') }}"></script>
+{% endblock %}
+
+{# Jinja2 macro for form fields #}
+{% macro field(name, label, type="text", required=false, textarea=false) %}
+<div>
+  <label class="block text-sm font-medium text-gray-700 mb-1">
+    {{ label }}{% if required %} <span class="text-red-500">*</span>{% endif %}
+  </label>
+  {% if textarea %}
+    <textarea name="{{ name }}" rows="3"
+      {% if required %}required{% endif %}
+      class="input-field w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent resize-y"></textarea>
+  {% else %}
+    <input type="{{ type }}" name="{{ name }}"
+      {% if required %}required{% endif %}
+      class="input-field w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent" />
+  {% endif %}
+</div>
+{% endmacro %}

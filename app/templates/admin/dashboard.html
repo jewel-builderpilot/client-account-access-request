@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — BuilderPilot Admin{% endblock %}
+{% block body %}
+<div class="min-h-screen bg-gray-50">
+
+  <!-- Nav -->
+  <nav class="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
+    <span class="font-bold text-indigo-700 text-lg">BuilderPilot Admin</span>
+    <div class="flex items-center gap-4 text-sm">
+      <a href="{{ url_for('admin.settings') }}" class="text-gray-500 hover:text-indigo-600">Settings</a>
+      <span class="text-gray-300">|</span>
+      <span class="text-gray-500">{{ current_user.email }}</span>
+      <a href="{{ url_for('admin.logout') }}" class="text-red-500 hover:underline">Sign out</a>
+    </div>
+  </nav>
+
+  <div class="max-w-6xl mx-auto px-6 py-8">
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-bold text-gray-900">Client Onboarding Tracker</h1>
+      <span class="text-sm text-gray-500">{{ clients|length }} client{{ 's' if clients|length != 1 }}</span>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+      {% set pending_count = clients|selectattr("status","equalto","pending")|list|length %}
+      {% set active_count = clients|selectattr("status","equalto","active")|list|length %}
+      {% set complete_count = clients|selectattr("status","equalto","complete")|list|length %}
+      {{ stat_card("Total", clients|length, "bg-indigo-50 text-indigo-700") }}
+      {{ stat_card("Pending", pending_count, "bg-yellow-50 text-yellow-700") }}
+      {{ stat_card("Active", active_count, "bg-blue-50 text-blue-700") }}
+      {{ stat_card("Complete", complete_count, "bg-green-50 text-green-700") }}
+    </div>
+
+    <!-- Table -->
+    <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+      <table class="min-w-full text-sm">
+        <thead class="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th class="px-5 py-3 text-left font-semibold text-gray-600">Company</th>
+            <th class="px-5 py-3 text-left font-semibold text-gray-600">Contact</th>
+            <th class="px-5 py-3 text-left font-semibold text-gray-600">Email</th>
+            <th class="px-5 py-3 text-left font-semibold text-gray-600">Status</th>
+            <th class="px-5 py-3 text-left font-semibold text-gray-600">Access</th>
+            <th class="px-5 py-3 text-left font-semibold text-gray-600">Submitted</th>
+            <th class="px-5 py-3"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {% for c in clients %}
+          <tr class="hover:bg-gray-50 transition">
+            <td class="px-5 py-3 font-medium text-gray-900">{{ c.company_name }}</td>
+            <td class="px-5 py-3 text-gray-600">{{ c.owner_name }}</td>
+            <td class="px-5 py-3 text-gray-600">{{ c.best_email }}</td>
+            <td class="px-5 py-3">{{ status_badge(c.status) }}</td>
+            <td class="px-5 py-3">
+              <div class="flex items-center gap-2">
+                <div class="w-20 bg-gray-200 rounded-full h-1.5">
+                  <div class="bg-indigo-500 h-1.5 rounded-full" style="width:{{ c.access_pct }}%"></div>
+                </div>
+                <span class="text-xs text-gray-500">{{ c.access_pct }}%</span>
+              </div>
+            </td>
+            <td class="px-5 py-3 text-gray-400 text-xs">{{ c.created_at[:10] if c.created_at }}</td>
+            <td class="px-5 py-3">
+              <a href="{{ url_for('admin.client_detail', client_id=c.id) }}"
+                class="text-indigo-600 hover:underline font-medium">View →</a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="px-5 py-10 text-center text-gray-400">No clients yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% macro stat_card(label, value, cls) %}
+<div class="rounded-xl p-4 {{ cls }} font-medium">
+  <div class="text-2xl font-bold">{{ value }}</div>
+  <div class="text-xs mt-0.5">{{ label }}</div>
+</div>
+{% endmacro %}
+
+{% macro status_badge(status) %}
+{% set colors = {"pending": "bg-yellow-100 text-yellow-800", "active": "bg-blue-100 text-blue-800", "complete": "bg-green-100 text-green-800"} %}
+<span class="px-2 py-0.5 rounded-full text-xs font-medium {{ colors.get(status, 'bg-gray-100 text-gray-600') }}">
+  {{ status | capitalize }}
+</span>
+{% endmacro %}

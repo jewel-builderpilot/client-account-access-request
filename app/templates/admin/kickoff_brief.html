@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Kickoff Brief — {{ client.company_name }}{% endblock %}
+{% block body %}
+<div class="min-h-screen bg-gray-50">
+
+  <nav class="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between print:hidden">
+    <a href="{{ url_for('admin.client_detail', client_id=client.id) }}"
+      class="font-bold text-indigo-700 hover:underline">← Back to Client</a>
+    <button onclick="window.print()" class="bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-indigo-700 transition">
+      Print / Save PDF
+    </button>
+  </nav>
+
+  <div class="max-w-3xl mx-auto px-6 py-10 space-y-8" id="brief">
+
+    <div>
+      <p class="text-xs text-gray-400 uppercase tracking-widest mb-1">Kickoff Brief</p>
+      <h1 class="text-3xl font-bold text-gray-900">{{ client.company_name }}</h1>
+      <p class="text-gray-500 mt-1">{{ client.owner_name }} · {{ client.best_email }} · {{ client.phone }}</p>
+      <p class="text-xs text-gray-400 mt-1">Submitted: {{ client.created_at[:10] if client.created_at }}</p>
+    </div>
+
+    {{ section("Business Overview", [
+      ("Website", step_data.get("website")),
+      ("Location", step_data.get("city_state")),
+      ("Years in Business", step_data.get("years_in_business")),
+      ("Licensed / Bonded / Insured", step_data.get("licensed_bonded_insured")),
+      ("Tagline", step_data.get("tagline")),
+      ("Values / Differentiators", step_data.get("company_values")),
+    ]) }}
+
+    {{ section("Services & Market", [
+      ("Services Offered", step_data.get("services_offered")),
+      ("Top Revenue Service", step_data.get("top_revenue_service")),
+      ("Want More Leads For", step_data.get("more_leads_service")),
+      ("Avg Project Size", step_data.get("avg_project_size")),
+      ("Service Area", step_data.get("service_area")),
+      ("Ideal Customer", step_data.get("ideal_customer")),
+      ("Jobs to Avoid", step_data.get("unwanted_jobs")),
+    ]) }}
+
+    {{ section("Goals & Growth", [
+      ("#1 Partnership Goal", step_data.get("primary_goal")),
+      ("90-Day Success", step_data.get("success_90_days")),
+      ("Leads/Month Target", step_data.get("leads_per_month")),
+      ("Growth Plan", step_data.get("grow_or_steady")),
+      ("Expansion Plans", step_data.get("expansion_plans")),
+      ("Main Competitors", step_data.get("main_competitors")),
+      ("Differentiators", step_data.get("differentiators")),
+    ]) }}
+
+    {{ section("Budget & Ads", [
+      ("Monthly Ad Budget", step_data.get("monthly_ad_budget")),
+      ("Budget Split", step_data.get("budget_split")),
+      ("Run Ads Before", step_data.get("ran_ads_before")),
+      ("Past Frustrations", step_data.get("past_frustrations")),
+      ("Ads Live When", step_data.get("ads_live_when")),
+      ("Seasonal Notes", step_data.get("seasonal_considerations")),
+      ("Ad Copy Approval", step_data.get("approve_ad_copy")),
+    ]) }}
+
+    {{ section("Lead Preferences", [
+      ("Receive Leads Via", step_data.get("lead_receive_method")),
+      ("CRM", step_data.get("crm_name")),
+      ("Qualified Lead Definition", step_data.get("qualified_lead")),
+      ("Sales Process", step_data.get("sales_process")),
+      ("Close Rate", step_data.get("close_rate")),
+    ]) }}
+
+    <!-- Account Access Status -->
+    <div class="border-t border-gray-200 pt-6">
+      <h2 class="text-lg font-semibold text-gray-800 mb-3">Account Access Status</h2>
+      {% if access_reqs %}
+      <table class="min-w-full text-sm border border-gray-100 rounded-xl overflow-hidden">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Platform</th>
+            <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+          {% for r in access_reqs %}
+          <tr>
+            <td class="px-4 py-2 text-gray-800">{{ r.platform | replace("_"," ") | title }}</td>
+            <td class="px-4 py-2 text-gray-600">{{ r.request_status | replace("_"," ") | capitalize }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="text-gray-400 text-sm">No access requests.</p>
+      {% endif %}
+    </div>
+
+    <!-- Branding -->
+    {{ section("Branding", [
+      ("Brand Colors", step_data.get("brand_colors")),
+      ("Brand Fonts", step_data.get("brand_fonts")),
+      ("Logo Files", step_data.get("logo_files")),
+      ("Project Photos", step_data.get("project_photos")),
+      ("Certifications", step_data.get("certifications")),
+    ]) }}
+
+  </div>
+</div>
+{% endblock %}
+
+{% macro section(title, fields) %}
+<div class="border-t border-gray-200 pt-6">
+  <h2 class="text-lg font-semibold text-gray-800 mb-3">{{ title }}</h2>
+  <dl class="space-y-2 text-sm">
+    {% for label, val in fields %}
+    {% if val %}
+    <div class="flex gap-3">
+      <dt class="text-gray-400 w-44 shrink-0">{{ label }}</dt>
+      <dd class="text-gray-800">
+        {% if val is iterable and val is not string %}{{ val | join(", ") }}{% else %}{{ val }}{% endif %}
+      </dd>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </dl>
+</div>
+{% endmacro %}

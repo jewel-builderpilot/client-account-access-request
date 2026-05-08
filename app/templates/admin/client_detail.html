@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}{{ client.company_name }} — BuilderPilot Admin{% endblock %}
+{% block body %}
+<div class="min-h-screen bg-gray-50">
+
+  <nav class="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
+    <a href="{{ url_for('admin.dashboard') }}" class="font-bold text-indigo-700 text-lg hover:underline">← BuilderPilot Admin</a>
+    <div class="flex items-center gap-4 text-sm">
+      <span class="text-gray-500">{{ current_user.email }}</span>
+      <a href="{{ url_for('admin.logout') }}" class="text-red-500 hover:underline">Sign out</a>
+    </div>
+  </nav>
+
+  <div class="max-w-5xl mx-auto px-6 py-8 space-y-6">
+
+    <!-- Header -->
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ client.company_name }}</h1>
+        <p class="text-gray-500 text-sm">{{ client.owner_name }} · {{ client.best_email }} · {{ client.phone }}</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <!-- Status update -->
+        <form method="POST" action="{{ url_for('admin.update_status', client_id=client.id) }}" class="flex gap-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <select name="status" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm">
+            {% for s in ["pending","active","complete"] %}
+            <option value="{{ s }}" {% if client.status == s %}selected{% endif %}>{{ s|capitalize }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-indigo-700 transition">
+            Update
+          </button>
+        </form>
+        <a href="{{ url_for('admin.kickoff_brief', client_id=client.id) }}"
+          class="bg-green-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-green-700 transition">
+          Kickoff Brief
+        </a>
+      </div>
+    </div>
+
+    <!-- Access Requests -->
+    <div class="bg-white rounded-2xl shadow-sm p-6">
+      <h2 class="text-lg font-semibold text-gray-800 mb-4">Account Access Requests</h2>
+      {% if access_reqs %}
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="border-b border-gray-100">
+            <tr>
+              <th class="pb-2 text-left font-semibold text-gray-500">Platform</th>
+              <th class="pb-2 text-left font-semibold text-gray-500">Client Status</th>
+              <th class="pb-2 text-left font-semibold text-gray-500">Request Status</th>
+              <th class="pb-2 text-left font-semibold text-gray-500">Email Sent</th>
+              <th class="pb-2 text-left font-semibold text-gray-500">Granted</th>
+              <th class="pb-2"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-50">
+            {% for r in access_reqs %}
+            <tr>
+              <td class="py-2 font-medium text-gray-800">{{ r.platform | replace("_", " ") | title }}</td>
+              <td class="py-2 text-gray-500">{{ r.client_status | replace("_", " ") }}</td>
+              <td class="py-2">{{ request_status_badge(r.request_status) }}</td>
+              <td class="py-2 text-gray-400 text-xs">{{ r.email_sent_at[:10] if r.email_sent_at else "—" }}</td>
+              <td class="py-2 text-gray-400 text-xs">{{ r.granted_at[:10] if r.granted_at else "—" }}</td>
+              <td class="py-2">
+                <form method="POST" action="{{ url_for('admin.update_request', request_id=r.id) }}" class="flex gap-1">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                  <input type="hidden" name="client_id" value="{{ client.id }}" />
+                  <select name="status" class="border border-gray-200 rounded px-2 py-1 text-xs">
+                    {% for s in ["pending","email_sent","access_granted","not_needed"] %}
+                    <option value="{{ s }}" {% if r.request_status == s %}selected{% endif %}>
+                      {{ s | replace("_", " ") | capitalize }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                  <button type="submit" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded text-xs transition">
+                    Save
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-gray-400 text-sm">No access requests found.</p>
+      {% endif %}
+    </div>
+
+    <!-- Form Data -->
+    <div class="bg-white rounded-2xl shadow-sm p-6">
+      <h2 class="text-lg font-semibold text-gray-800 mb-4">Intake Form Data</h2>
+      {% if step_data %}
+      <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+        {% for key, val in step_data.items() if key != "csrf_token" %}
+        <div>
+          <dt class="text-gray-400 text-xs uppercase tracking-wide">{{ key | replace("_", " ") }}</dt>
+          <dd class="text-gray-800 mt-0.5">
+            {% if val is iterable and val is not string %}
+              {{ val | join(", ") }}
+            {% else %}
+              {{ val or "—" }}
+            {% endif %}
+          </dd>
+        </div>
+        {% endfor %}
+      </dl>
+      {% else %}
+      <p class="text-gray-400 text-sm">No form data available.</p>
+      {% endif %}
+    </div>
+
+    <!-- Activity Log -->
+    <div class="bg-white rounded-2xl shadow-sm p-6">
+      <h2 class="text-lg font-semibold text-gray-800 mb-4">Activity Log</h2>
+      {% if logs %}
+      <ul class="space-y-3 text-sm">
+        {% for entry in logs %}
+        <li class="flex gap-3 items-start">
+          <span class="text-gray-300 text-xs mt-0.5 whitespace-nowrap">{{ entry.created_at[:16] if entry.created_at }}</span>
+          <span class="font-medium text-indigo-700">{{ entry.event | replace("_", " ") | capitalize }}</span>
+          <span class="text-gray-500">{{ entry.detail }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-gray-400 text-sm">No activity yet.</p>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% macro request_status_badge(status) %}
+{% set colors = {
+  "pending": "bg-gray-100 text-gray-600",
+  "email_sent": "bg-yellow-100 text-yellow-700",
+  "access_granted": "bg-green-100 text-green-700",
+  "not_needed": "bg-gray-50 text-gray-400",
+} %}
+<span class="px-2 py-0.5 rounded-full text-xs font-medium {{ colors.get(status,'bg-gray-100 text-gray-600') }}">
+  {{ status | replace("_"," ") | capitalize }}
+</span>
+{% endmacro %}
