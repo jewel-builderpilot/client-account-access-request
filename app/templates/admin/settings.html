@@ -11,48 +11,108 @@
     </div>
   </nav>
 
-  <div class="max-w-xl mx-auto px-6 py-10 space-y-8">
+  <div class="max-w-xl mx-auto px-6 py-10 space-y-10">
     <h1 class="text-2xl font-bold text-gray-900">Settings</h1>
 
-    <!-- Agency IDs -->
-    <div>
-      <h2 class="text-base font-semibold text-gray-700 mb-4">Agency IDs</h2>
-      <form method="POST" action="{{ url_for('admin.settings') }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <!-- Single form for agency IDs + email settings -->
+    <form method="POST" action="{{ url_for('admin.settings') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+      <!-- Agency IDs -->
+      <div class="mb-8">
+        <h2 class="text-base font-semibold text-gray-700 mb-4">Agency IDs</h2>
         <div class="bg-white rounded-2xl shadow-sm p-6 space-y-6">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Google Ads Manager ID (MCC)</label>
-            <p class="text-xs text-gray-400 mb-2">
-              Shown in the Google Ads access email so clients know which account to invite.
-              Find it in Google Ads → click your account name (top-right) — it's the 10-digit number.
-            </p>
-            <input type="text" name="agency_ads_manager_id" value="{{ ads_manager_id }}"
+            <p class="text-xs text-gray-400 mb-2">Find it in Google Ads → click your account name (top-right) — it's the 10-digit number.</p>
+            <input type="text" name="agency_ads_manager_id" value="{{ s.agency_ads_manager_id }}"
               placeholder="e.g. 123-456-7890"
               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Meta Business Manager ID</label>
-            <p class="text-xs text-gray-400 mb-2">
-              Shown in the Meta access email so clients can add you as a partner.
-              Find it in Meta Business Suite → Settings → Business Info → "Business Manager ID".
-            </p>
-            <input type="text" name="agency_meta_bm_id" value="{{ meta_bm_id }}"
+            <p class="text-xs text-gray-400 mb-2">Find it in Meta Business Suite → Settings → Business Info → "Business Manager ID".</p>
+            <input type="text" name="agency_meta_bm_id" value="{{ s.agency_meta_bm_id }}"
               placeholder="e.g. 123456789"
               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
           </div>
-          <button type="submit"
-            class="w-full bg-indigo-600 text-white py-2.5 rounded-xl font-semibold hover:bg-indigo-700 transition">
-            Save Settings
-          </button>
         </div>
-      </form>
-    </div>
+      </div>
+
+      <!-- Email sender settings -->
+      <div class="mb-8">
+        <h2 class="text-base font-semibold text-gray-700 mb-4">Email Sender</h2>
+        <div class="bg-white rounded-2xl shadow-sm p-6 space-y-6">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">From Name</label>
+            <p class="text-xs text-gray-400 mb-2">The display name clients see in their inbox, e.g. "Jewel at BuilderPilot". Leave blank to show just the email address.</p>
+            <input type="text" name="email_from_name" value="{{ s.email_from_name }}"
+              placeholder="e.g. Jewel at BuilderPilot"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Reply-To Email</label>
+            <p class="text-xs text-gray-400 mb-2">Where client replies are sent. Leave blank to use the Gmail sender address.</p>
+            <input type="email" name="email_reply_to" value="{{ s.email_reply_to }}"
+              placeholder="e.g. jewel@builderpilot.com"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Google email -->
+      <div class="mb-8">
+        <h2 class="text-base font-semibold text-gray-700 mb-1">Google Access Request Email</h2>
+        <p class="text-xs text-gray-400 mb-4">Sent to clients who have Google Ads, GTM, GA4, GBP, or GSC accounts. The step-by-step instructions are added automatically below the intro.</p>
+        <div class="bg-white rounded-2xl shadow-sm p-6 space-y-6">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Subject Line</label>
+            <input type="text" name="google_email_subject" value="{{ s.google_email_subject }}"
+              placeholder="Action Required: Grant Account Access — {company name auto-added}"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+            <p class="text-xs text-gray-400 mt-1">Leave blank to use the default subject.</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Intro Paragraph</label>
+            <textarea name="google_email_intro" rows="3"
+              placeholder="As part of your onboarding, we need admin/manager access to the following Google platforms so we can start setting up and managing your campaigns:"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-y">{{ s.google_email_intro }}</textarea>
+            <p class="text-xs text-gray-400 mt-1">Leave blank to use the default intro.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Meta email -->
+      <div class="mb-8">
+        <h2 class="text-base font-semibold text-gray-700 mb-1">Meta Access Request Email</h2>
+        <p class="text-xs text-gray-400 mb-4">Sent to clients who have a Meta Business Manager or Facebook Page. The step-by-step instructions are added automatically below the intro.</p>
+        <div class="bg-white rounded-2xl shadow-sm p-6 space-y-6">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Subject Line</label>
+            <input type="text" name="meta_email_subject" value="{{ s.meta_email_subject }}"
+              placeholder="Action Required: Grant Meta Account Access — {company name auto-added}"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+            <p class="text-xs text-gray-400 mt-1">Leave blank to use the default subject.</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Intro Paragraph</label>
+            <textarea name="meta_email_intro" rows="3"
+              placeholder="We need access to the following Meta platforms to manage your advertising:"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-y">{{ s.meta_email_intro }}</textarea>
+            <p class="text-xs text-gray-400 mt-1">Leave blank to use the default intro.</p>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit"
+        class="w-full bg-indigo-600 text-white py-2.5 rounded-xl font-semibold hover:bg-indigo-700 transition">
+        Save All Settings
+      </button>
+    </form>
 
     <!-- Admin Users -->
     <div>
       <h2 class="text-base font-semibold text-gray-700 mb-4">Admin Users</h2>
-
-      <!-- Existing admins -->
       <div class="bg-white rounded-2xl shadow-sm overflow-hidden mb-4">
         <table class="min-w-full text-sm">
           <thead class="bg-gray-50 border-b border-gray-100">
@@ -74,8 +134,7 @@
               <td class="px-5 py-3 text-gray-400 text-xs">{{ admin.created_at[:10] if admin.created_at }}</td>
               <td class="px-5 py-3 text-right">
                 {% if admin.id != current_user_id %}
-                <form method="POST"
-                  action="{{ url_for('admin.remove_admin_user', user_id=admin.id) }}"
+                <form method="POST" action="{{ url_for('admin.remove_admin_user', user_id=admin.id) }}"
                   onsubmit="return confirm('Remove {{ admin.email }} as admin?')">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                   <button type="submit" class="text-red-500 hover:underline text-xs">Remove</button>
@@ -88,7 +147,6 @@
         </table>
       </div>
 
-      <!-- Add new admin -->
       <div class="bg-white rounded-2xl shadow-sm p-6">
         <h3 class="text-sm font-semibold text-gray-700 mb-4">Add New Admin</h3>
         <form method="POST" action="{{ url_for('admin.add_admin_user') }}" class="space-y-4">

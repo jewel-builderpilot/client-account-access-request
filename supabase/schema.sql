@@ -17,7 +17,13 @@ create policy "service_role_only" on settings
 -- Seed default empty values
 insert into settings (key, value) values
   ('agency_ads_manager_id', ''),
-  ('agency_meta_bm_id', '')
+  ('agency_meta_bm_id', ''),
+  ('email_from_name', ''),
+  ('email_reply_to', ''),
+  ('google_email_subject', ''),
+  ('google_email_intro', ''),
+  ('meta_email_subject', ''),
+  ('meta_email_intro', '')
 on conflict (key) do nothing;
 
 

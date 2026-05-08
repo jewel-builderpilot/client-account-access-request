@@ -116,18 +116,25 @@ def update_status(client_id):
     return redirect(url_for("admin.client_detail", client_id=client_id))
 
 
+SETTINGS_KEYS = [
+    "agency_ads_manager_id", "agency_meta_bm_id",
+    "email_from_name", "email_reply_to",
+    "google_email_subject", "google_email_intro",
+    "meta_email_subject", "meta_email_intro",
+]
+
+
 @admin_bp.route("/settings", methods=["GET", "POST"])
 @login_required
 def settings():
     if request.method == "POST":
-        set_setting("agency_ads_manager_id", request.form.get("agency_ads_manager_id", "").strip())
-        set_setting("agency_meta_bm_id", request.form.get("agency_meta_bm_id", "").strip())
+        for key in SETTINGS_KEYS:
+            set_setting(key, request.form.get(key, "").strip())
         flash("Settings saved.", "success")
         return redirect(url_for("admin.settings"))
 
     return render_template("admin/settings.html",
-        ads_manager_id=get_setting("agency_ads_manager_id"),
-        meta_bm_id=get_setting("agency_meta_bm_id"),
+        s={key: get_setting(key) for key in SETTINGS_KEYS},
         admins=get_all_admins(),
         current_user_id=current_user.id,
     )

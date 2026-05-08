@@ -21,22 +21,32 @@ def _get_gmail_service():
     return build("gmail", "v1", credentials=creds, cache_discovery=False)
 
 
-def send_email(to_email: str, subject: str, html_content: str) -> bool:
+def send_email(
+    to_email: str,
+    subject: str,
+    html_content: str,
+    from_name: str = "",
+    reply_to: str = "",
+) -> bool:
     """Send an email via Gmail API. Returns True on success."""
-    sender = current_app.config.get("GMAIL_SENDER_EMAIL", "")
+    sender_email = current_app.config.get("GMAIL_SENDER_EMAIL", "")
     if not all([
         current_app.config.get("GMAIL_CLIENT_ID"),
         current_app.config.get("GMAIL_CLIENT_SECRET"),
         current_app.config.get("GMAIL_REFRESH_TOKEN"),
-        sender,
+        sender_email,
     ]):
         current_app.logger.warning("Gmail API not configured — email not sent.")
         return False
 
+    from_header = f"{from_name} <{sender_email}>" if from_name else sender_email
+
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
-    msg["From"] = sender
+    msg["From"] = from_header
     msg["To"] = to_email
+    if reply_to:
+        msg["Reply-To"] = reply_to
     msg.attach(MIMEText(html_content, "html"))
 
     raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()

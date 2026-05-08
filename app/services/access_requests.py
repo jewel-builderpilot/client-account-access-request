@@ -54,14 +54,16 @@ def process_access_requests(client_id: str, form_data: dict) -> None:
     company_name = form_data.get("company_name", "")
     ads_manager_id = get_setting("agency_ads_manager_id")
     meta_bm_id = get_setting("agency_meta_bm_id")
+    from_name = get_setting("email_from_name")
+    reply_to = get_setting("email_reply_to")
+    google_subject = get_setting("google_email_subject") or f"Action Required: Grant Account Access — {company_name}"
+    google_intro = get_setting("google_email_intro")
+    meta_subject = get_setting("meta_email_subject") or f"Action Required: Grant Meta Account Access — {company_name}"
+    meta_intro = get_setting("meta_email_intro")
 
     if google_needed and client_email:
-        html = _render_google_email(owner_name, company_name, google_needed, ads_manager_id)
-        sent = send_email(
-            client_email,
-            f"Action Required: Grant Account Access — {company_name}",
-            html,
-        )
+        html = _render_google_email(owner_name, company_name, google_needed, ads_manager_id, google_intro)
+        sent = send_email(client_email, google_subject, html, from_name=from_name, reply_to=reply_to)
         if sent:
             now = datetime.now(timezone.utc).isoformat()
             for entry in google_needed:
@@ -72,12 +74,8 @@ def process_access_requests(client_id: str, form_data: dict) -> None:
             log_event(client_id, "access_email_sent", f"Google access email sent to {client_email}")
 
     if meta_needed and client_email:
-        html = _render_meta_email(owner_name, company_name, meta_needed, meta_bm_id)
-        sent = send_email(
-            client_email,
-            f"Action Required: Grant Meta Account Access — {company_name}",
-            html,
-        )
+        html = _render_meta_email(owner_name, company_name, meta_needed, meta_bm_id, meta_intro)
+        sent = send_email(client_email, meta_subject, html, from_name=from_name, reply_to=reply_to)
         if sent:
             now = datetime.now(timezone.utc).isoformat()
             for entry in meta_needed:
@@ -88,23 +86,31 @@ def process_access_requests(client_id: str, form_data: dict) -> None:
             log_event(client_id, "access_email_sent", f"Meta access email sent to {client_email}")
 
 
+DEFAULT_GOOGLE_INTRO = (
+    "As part of your onboarding, we need admin/manager access to the following Google platforms "
+    "so we can start setting up and managing your campaigns:"
+)
+
+DEFAULT_META_INTRO = (
+    "We need access to the following Meta platforms to manage your advertising:"
+)
+
+
 def _render_google_email(
-    owner_name: str, company_name: str, platforms: list[dict], manager_id: str
+    owner_name: str, company_name: str, platforms: list[dict], manager_id: str, intro: str = ""
 ) -> str:
     platform_list = "".join(
         f"<li><strong>{p['label']}</strong></li>" for p in platforms
     )
     step_blocks = _google_step_instructions(platforms, manager_id)
+    body_intro = intro.strip() if intro.strip() else DEFAULT_GOOGLE_INTRO
     return f"""
 <!DOCTYPE html>
 <html>
 <body style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 24px;">
   <h2 style="color: #1a73e8;">Action Required: Grant Google Account Access</h2>
   <p>Hi {owner_name},</p>
-  <p>
-    As part of your onboarding with <strong>{company_name}</strong>, we need admin/manager access
-    to the following Google platforms so we can start setting up and managing your campaigns:
-  </p>
+  <p>{body_intro}</p>
   <ul>{platform_list}</ul>
   <p>Please follow the steps below for each platform:</p>
   {step_blocks}
@@ -112,7 +118,7 @@ def _render_google_email(
     Once you've granted access, we'll receive a notification and get started right away.
     If you run into any issues, just reply to this email and we'll walk you through it.
   </p>
-  <p>Thank you!<br>The BuilderPilot Team</p>
+  <p>Thank you!</p>
 </body>
 </html>
 """
@@ -181,27 +187,26 @@ def _google_step_instructions(platforms: list[dict], manager_id: str) -> str:
 
 
 def _render_meta_email(
-    owner_name: str, company_name: str, platforms: list[dict], meta_bm_id: str
+    owner_name: str, company_name: str, platforms: list[dict], meta_bm_id: str, intro: str = ""
 ) -> str:
     platform_list = "".join(
         f"<li><strong>{p['label']}</strong></li>" for p in platforms
     )
     step_blocks = _meta_step_instructions(platforms, meta_bm_id)
+    body_intro = intro.strip() if intro.strip() else DEFAULT_META_INTRO
     return f"""
 <!DOCTYPE html>
 <html>
 <body style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 24px;">
   <h2 style="color: #1877f2;">Action Required: Grant Meta Account Access</h2>
   <p>Hi {owner_name},</p>
-  <p>
-    We need access to the following Meta platforms to manage your advertising:
-  </p>
+  <p>{body_intro}</p>
   <ul>{platform_list}</ul>
   {step_blocks}
   <p>
     If you need help with any of these steps, just reply to this email and we'll assist you directly.
   </p>
-  <p>Thank you!<br>The BuilderPilot Team</p>
+  <p>Thank you!</p>
 </body>
 </html>
 """
@@ -243,5 +248,4 @@ def _meta_step_instructions(platforms: list[dict], meta_bm_id: str) -> str:
 
 
 def _agency_email() -> str:
-    from flask import current_app
-    return current_app.config.get("SENDGRID_FROM_EMAIL", "access@builderpilot.com")
+    return current_app.config.get("GMAIL_SENDER_EMAIL", "")
