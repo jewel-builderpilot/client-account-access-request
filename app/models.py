@@ -43,9 +43,23 @@ def update_client_status(client_id: str, status: str) -> None:
 # ---------- access_requests ----------
 
 def create_access_request(data: dict) -> dict:
+    import uuid
+    data.setdefault("confirm_token", str(uuid.uuid4()))
     db = get_db()
     result = db.table("access_requests").insert(data).execute()
     return result.data[0]
+
+
+def get_access_request_by_token(token: str) -> dict | None:
+    db = get_db()
+    result = (
+        db.table("access_requests")
+        .select("*")
+        .eq("confirm_token", token)
+        .limit(1)
+        .execute()
+    )
+    return result.data[0] if result.data else None
 
 
 def get_access_requests_for_client(client_id: str) -> list:

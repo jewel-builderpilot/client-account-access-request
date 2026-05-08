@@ -116,6 +116,19 @@ def update_status(client_id):
     return redirect(url_for("admin.client_detail", client_id=client_id))
 
 
+@admin_bp.route("/access-request/<request_id>/details", methods=["POST"])
+@login_required
+def update_request_details(request_id):
+    client_id = request.form.get("client_id")
+    update_access_request(request_id, {
+        "account_name": request.form.get("account_name", "").strip(),
+        "account_id": request.form.get("account_id", "").strip(),
+        "account_notes": request.form.get("account_notes", "").strip(),
+    })
+    flash("Account details saved.", "success")
+    return redirect(url_for("admin.client_detail", client_id=client_id))
+
+
 SETTINGS_KEYS = [
     "agency_ads_manager_id", "agency_meta_bm_id",
     "email_from_name", "email_reply_to",

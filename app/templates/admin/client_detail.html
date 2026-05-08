@@ -41,48 +41,74 @@
 
     <!-- Access Requests -->
     <div class="bg-white rounded-2xl shadow-sm p-6">
-      <h2 class="text-lg font-semibold text-gray-800 mb-4">Account Access Requests</h2>
+      <h2 class="text-lg font-semibold text-gray-800 mb-4">Account Access</h2>
       {% if access_reqs %}
-      <div class="overflow-x-auto">
-        <table class="min-w-full text-sm">
-          <thead class="border-b border-gray-100">
-            <tr>
-              <th class="pb-2 text-left font-semibold text-gray-500">Platform</th>
-              <th class="pb-2 text-left font-semibold text-gray-500">Client Status</th>
-              <th class="pb-2 text-left font-semibold text-gray-500">Request Status</th>
-              <th class="pb-2 text-left font-semibold text-gray-500">Email Sent</th>
-              <th class="pb-2 text-left font-semibold text-gray-500">Granted</th>
-              <th class="pb-2"></th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-50">
-            {% for r in access_reqs %}
-            <tr>
-              <td class="py-2 font-medium text-gray-800">{{ r.platform | replace("_", " ") | title }}</td>
-              <td class="py-2 text-gray-500">{{ r.client_status | replace("_", " ") }}</td>
-              <td class="py-2">{{ request_status_badge(r.request_status) }}</td>
-              <td class="py-2 text-gray-400 text-xs">{{ r.email_sent_at[:10] if r.email_sent_at else "—" }}</td>
-              <td class="py-2 text-gray-400 text-xs">{{ r.granted_at[:10] if r.granted_at else "—" }}</td>
-              <td class="py-2">
-                <form method="POST" action="{{ url_for('admin.update_request', request_id=r.id) }}" class="flex gap-1">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                  <input type="hidden" name="client_id" value="{{ client.id }}" />
-                  <select name="status" class="border border-gray-200 rounded px-2 py-1 text-xs">
-                    {% for s in ["pending","email_sent","access_granted","not_needed"] %}
-                    <option value="{{ s }}" {% if r.request_status == s %}selected{% endif %}>
-                      {{ s | replace("_", " ") | capitalize }}
-                    </option>
-                    {% endfor %}
-                  </select>
-                  <button type="submit" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded text-xs transition">
-                    Save
-                  </button>
-                </form>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      <div class="space-y-4">
+        {% for r in access_reqs %}
+        <div class="border border-gray-100 rounded-xl p-4">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+            <div class="flex items-center gap-3">
+              <span class="font-medium text-gray-800">{{ r.platform | replace("_", " ") | title }}</span>
+              {{ request_status_badge(r.request_status) }}
+            </div>
+            <div class="text-xs text-gray-400 space-x-3">
+              {% if r.email_sent_at %}<span>Email sent {{ r.email_sent_at[:10] }}</span>{% endif %}
+              {% if r.granted_at %}<span>✓ Granted {{ r.granted_at[:10] }}</span>{% endif %}
+            </div>
+          </div>
+
+          <!-- Status update -->
+          <form method="POST" action="{{ url_for('admin.update_request', request_id=r.id) }}"
+            class="flex gap-2 mb-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <input type="hidden" name="client_id" value="{{ client.id }}" />
+            <select name="status" class="border border-gray-200 rounded-lg px-2 py-1 text-xs">
+              {% for s in ["pending","email_sent","access_granted","not_needed"] %}
+              <option value="{{ s }}" {% if r.request_status == s %}selected{% endif %}>
+                {{ s | replace("_", " ") | capitalize }}
+              </option>
+              {% endfor %}
+            </select>
+            <button type="submit"
+              class="bg-indigo-600 text-white px-3 py-1 rounded-lg text-xs hover:bg-indigo-700 transition">
+              Update Status
+            </button>
+          </form>
+
+          <!-- Account details (editable) -->
+          <form method="POST"
+            action="{{ url_for('admin.update_request_details', request_id=r.id) }}"
+            class="space-y-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <input type="hidden" name="client_id" value="{{ client.id }}" />
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Account Details</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <label class="block text-xs text-gray-400 mb-0.5">Account Name</label>
+                <input type="text" name="account_name" value="{{ r.account_name or '' }}"
+                  placeholder="e.g. Acme Roofing — Google Ads"
+                  class="w-full border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400" />
+              </div>
+              <div>
+                <label class="block text-xs text-gray-400 mb-0.5">Account ID</label>
+                <input type="text" name="account_id" value="{{ r.account_id or '' }}"
+                  placeholder="e.g. 123-456-7890 or 1234567890"
+                  class="w-full border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-0.5">Notes</label>
+              <input type="text" name="account_notes" value="{{ r.account_notes or '' }}"
+                placeholder="Any notes about this account"
+                class="w-full border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400" />
+            </div>
+            <button type="submit"
+              class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-lg text-xs transition">
+              Save Details
+            </button>
+          </form>
+        </div>
+        {% endfor %}
       </div>
       {% else %}
       <p class="text-gray-400 text-sm">No access requests found.</p>

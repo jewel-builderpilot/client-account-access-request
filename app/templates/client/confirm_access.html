@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Access Confirmed — BuilderPilot{% endblock %}
+{% block body %}
+<div class="min-h-screen flex items-center justify-center px-4">
+  <div class="bg-white rounded-2xl shadow-lg p-10 max-w-md w-full text-center">
+
+    {% if status == "confirmed" %}
+      <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold text-gray-900 mb-3">Access Confirmed!</h1>
+      <p class="text-gray-600">
+        We've been notified that you've granted access to
+        <strong>{{ platform | replace("_", " ") | title }}</strong>.
+        Our team will verify it and get started right away.
+      </p>
+      <p class="text-gray-400 text-sm mt-4">You can close this tab.</p>
+
+    {% elif status == "already_confirmed" %}
+      <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+        <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z" />
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold text-gray-900 mb-3">Already Confirmed</h1>
+      <p class="text-gray-600">
+        We already have your confirmation for
+        <strong>{{ platform | replace("_", " ") | title }}</strong>. No action needed.
+      </p>
+      <p class="text-gray-400 text-sm mt-4">You can close this tab.</p>
+
+    {% else %}
+      <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+        <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold text-gray-900 mb-3">Invalid Link</h1>
+      <p class="text-gray-600">This confirmation link is invalid or has already expired.</p>
+      <p class="text-gray-400 text-sm mt-4">Please contact us if you need help.</p>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

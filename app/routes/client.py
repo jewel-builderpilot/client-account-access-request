@@ -1,6 +1,7 @@
 import json
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
-from ..models import create_client_record, log_event
+from datetime import datetime, timezone
+from ..models import create_client_record, log_event, get_access_request_by_token, update_access_request
 from ..services.access_requests import process_access_requests
 
 client_bp = Blueprint("client", __name__)
@@ -65,6 +66,25 @@ def submit_form():
 @client_bp.route("/form/success")
 def success():
     return render_template("client/success.html")
+
+
+@client_bp.route("/confirm-access/<token>")
+def confirm_access(token):
+    req = get_access_request_by_token(token)
+    if not req:
+        return render_template("client/confirm_access.html", status="invalid")
+    if req["request_status"] == "access_granted":
+        return render_template("client/confirm_access.html", status="already_confirmed",
+                               platform=req["platform"])
+    now = datetime.now(timezone.utc).isoformat()
+    update_access_request(req["id"], {
+        "request_status": "access_granted",
+        "granted_at": now,
+    })
+    log_event(req["client_id"], "access_granted",
+              f"Client confirmed access for {req['platform']}")
+    return render_template("client/confirm_access.html", status="confirmed",
+                           platform=req["platform"])
 
 
 def _validate(data: dict) -> dict:

@@ -43,7 +43,12 @@ def process_access_requests(client_id: str, form_data: dict) -> None:
         })
 
         if raw_status in NEEDS_ACTION_STATUSES:
-            entry = {"id": row["id"], "platform": platform, "label": PLATFORM_LABELS[platform]}
+            entry = {
+                "id": row["id"],
+                "platform": platform,
+                "label": PLATFORM_LABELS[platform],
+                "confirm_token": row.get("confirm_token", ""),
+            }
             if platform in GOOGLE_PLATFORMS:
                 google_needed.append(entry)
             else:
@@ -56,14 +61,14 @@ def process_access_requests(client_id: str, form_data: dict) -> None:
     meta_bm_id = get_setting("agency_meta_bm_id")
     from_name = get_setting("email_from_name")
     reply_to = get_setting("email_reply_to")
-    google_subject = get_setting("google_email_subject") or f"Action Required: Grant Account Access — {company_name}"
+    google_subject = get_setting("google_email_subject") or DEFAULT_GOOGLE_SUBJECT
     google_intro = get_setting("google_email_intro")
-    meta_subject = get_setting("meta_email_subject") or f"Action Required: Grant Meta Account Access — {company_name}"
+    meta_subject = get_setting("meta_email_subject") or DEFAULT_META_SUBJECT
     meta_intro = get_setting("meta_email_intro")
 
     if google_needed and client_email:
         html = _render_google_email(owner_name, company_name, google_needed, ads_manager_id, google_intro)
-        sent = send_email(client_email, google_subject, html, from_name=from_name, reply_to=reply_to)
+        sent = send_email(client_email, f"{google_subject} — {company_name}", html, from_name=from_name, reply_to=reply_to)
         if sent:
             now = datetime.now(timezone.utc).isoformat()
             for entry in google_needed:
@@ -75,7 +80,7 @@ def process_access_requests(client_id: str, form_data: dict) -> None:
 
     if meta_needed and client_email:
         html = _render_meta_email(owner_name, company_name, meta_needed, meta_bm_id, meta_intro)
-        sent = send_email(client_email, meta_subject, html, from_name=from_name, reply_to=reply_to)
+        sent = send_email(client_email, f"{meta_subject} — {company_name}", html, from_name=from_name, reply_to=reply_to)
         if sent:
             now = datetime.now(timezone.utc).isoformat()
             for entry in meta_needed:
@@ -86,24 +91,30 @@ def process_access_requests(client_id: str, form_data: dict) -> None:
             log_event(client_id, "access_email_sent", f"Meta access email sent to {client_email}")
 
 
+DEFAULT_GOOGLE_SUBJECT = "Action Required: Grant Google Account Access"
 DEFAULT_GOOGLE_INTRO = (
-    "As part of your onboarding, we need admin/manager access to the following Google platforms "
-    "so we can start setting up and managing your campaigns:"
+    "As part of your onboarding, we need admin or manager access to the following Google platforms "
+    "so we can start setting up and managing your campaigns. This is a quick one-time step — "
+    "it typically takes less than 5 minutes per platform."
 )
 
+DEFAULT_META_SUBJECT = "Action Required: Grant Meta Account Access"
 DEFAULT_META_INTRO = (
-    "We need access to the following Meta platforms to manage your advertising:"
+    "To run Facebook and Instagram ads for your business, we need partner access to your Meta accounts. "
+    "This is a one-time setup that gives us the access we need to manage your campaigns on your behalf."
 )
 
 
 def _render_google_email(
     owner_name: str, company_name: str, platforms: list[dict], manager_id: str, intro: str = ""
 ) -> str:
+    from flask import url_for
     platform_list = "".join(
         f"<li><strong>{p['label']}</strong></li>" for p in platforms
     )
     step_blocks = _google_step_instructions(platforms, manager_id)
     body_intro = intro.strip() if intro.strip() else DEFAULT_GOOGLE_INTRO
+    confirm_buttons = _confirmation_buttons(platforms)
     return f"""
 <!DOCTYPE html>
 <html>
@@ -114,8 +125,10 @@ def _render_google_email(
   <ul>{platform_list}</ul>
   <p>Please follow the steps below for each platform:</p>
   {step_blocks}
-  <p>
-    Once you've granted access, we'll receive a notification and get started right away.
+  <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;" />
+  <p><strong>Once you've completed the steps above, click the button(s) below to let us know:</strong></p>
+  {confirm_buttons}
+  <p style="color:#6b7280;font-size:13px;margin-top:24px;">
     If you run into any issues, just reply to this email and we'll walk you through it.
   </p>
   <p>Thank you!</p>
@@ -194,6 +207,7 @@ def _render_meta_email(
     )
     step_blocks = _meta_step_instructions(platforms, meta_bm_id)
     body_intro = intro.strip() if intro.strip() else DEFAULT_META_INTRO
+    confirm_buttons = _confirmation_buttons(platforms)
     return f"""
 <!DOCTYPE html>
 <html>
@@ -203,7 +217,10 @@ def _render_meta_email(
   <p>{body_intro}</p>
   <ul>{platform_list}</ul>
   {step_blocks}
-  <p>
+  <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;" />
+  <p><strong>Once you've completed the steps above, click the button(s) below to let us know:</strong></p>
+  {confirm_buttons}
+  <p style="color:#6b7280;font-size:13px;margin-top:24px;">
     If you need help with any of these steps, just reply to this email and we'll assist you directly.
   </p>
   <p>Thank you!</p>
@@ -249,3 +266,25 @@ def _meta_step_instructions(platforms: list[dict], meta_bm_id: str) -> str:
 
 def _agency_email() -> str:
     return current_app.config.get("GMAIL_SENDER_EMAIL", "")
+
+
+def _confirmation_buttons(platforms: list[dict]) -> str:
+    """Render one confirmation button per platform, each with its own unique token link."""
+    from flask import url_for
+    buttons = []
+    for p in platforms:
+        token = p.get("confirm_token", "")
+        label = p["label"]
+        if not token:
+            continue
+        confirm_url = url_for("client.confirm_access", token=token, _external=True)
+        buttons.append(f"""
+<div style="margin:12px 0;">
+  <a href="{confirm_url}"
+     style="display:inline-block;background:#16a34a;color:#fff;padding:12px 24px;
+            border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">
+    ✓ I've granted access to {label}
+  </a>
+</div>
+""")
+    return "\n".join(buttons) if buttons else ""

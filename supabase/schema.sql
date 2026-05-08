@@ -20,10 +20,10 @@ insert into settings (key, value) values
   ('agency_meta_bm_id', ''),
   ('email_from_name', ''),
   ('email_reply_to', ''),
-  ('google_email_subject', ''),
-  ('google_email_intro', ''),
-  ('meta_email_subject', ''),
-  ('meta_email_intro', '')
+  ('google_email_subject', 'Action Required: Grant Google Account Access'),
+  ('google_email_intro', 'As part of your onboarding, we need admin or manager access to the following Google platforms so we can start setting up and managing your campaigns. This is a quick one-time step — it typically takes less than 5 minutes per platform.'),
+  ('meta_email_subject', 'Action Required: Grant Meta Account Access'),
+  ('meta_email_intro', 'To run Facebook and Instagram ads for your business, we need partner access to your Meta accounts. This is a one-time setup that gives us the access we need to manage your campaigns on your behalf.')
 on conflict (key) do nothing;
 
 
@@ -80,6 +80,10 @@ create table if not exists access_requests (
   email_sent_at   timestamptz,
   granted_at      timestamptz,
   notes           text,
+  confirm_token   uuid unique default gen_random_uuid(),
+  account_name    text,
+  account_id      text,
+  account_notes   text,
   created_at      timestamptz default now()
 );
 
