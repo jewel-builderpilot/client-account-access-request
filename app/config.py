@@ -27,7 +27,8 @@ class DevelopmentConfig(Config):
 
 class ProductionConfig(Config):
     DEBUG = False
-    TALISMAN_FORCE_HTTPS = True
+    # Vercel terminates TLS at the edge — don't force HTTPS inside the container
+    TALISMAN_FORCE_HTTPS = False
 
 
 config = {
